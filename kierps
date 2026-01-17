@@ -2312,7 +2312,9 @@ function Luna:CreateWindow(WindowSettings)
 			return
 		end
 		
-		WindowSettings.KeySettings.FileName = "key"
+		if WindowSettings.KeySettings.FileName == nil or WindowSettings.KeySettings.FileName == "" then
+			WindowSettings.KeySettings.FileName = "key"
+		end
 
 		if typeof(WindowSettings.KeySettings.Key) == "string" then WindowSettings.KeySettings.Key = {WindowSettings.KeySettings.Key} end
 
@@ -2371,13 +2373,15 @@ function Luna:CreateWindow(WindowSettings)
 			end)
 
 			KeySystem.Action.Submit.Interact.MouseButton1Click:Connect(function()
-				if #KeySystem.Input.InputBox.Text == 0 then return end
+				local inputKey = tostring(KeySystem.Input.InputBox.Text or "")
+				inputKey = inputKey:match("^%s*(.-)%s*$")
+				if #inputKey == 0 then return end
 				local KeyFound = false
 				local FoundKey = ''
 				for _, Key in ipairs(WindowSettings.KeySettings.Key) do
-					if KeySystem.Input.InputBox.Text == Key then
+					if inputKey == tostring(Key) then
 						KeyFound = true
-						FoundKey = Key
+						FoundKey = tostring(Key)
 						break
 					end
 				end
@@ -2404,9 +2408,16 @@ function Luna:CreateWindow(WindowSettings)
 					KeySystem.Visible = false
 					if WindowSettings.KeySettings.SaveKey then
 						if writefile then
-							writefile(direc .. WindowSettings.KeySettings.FileName .. ".luna", FoundKey)
+							if isfolder and makefolder and not isfolder(direc) then
+								makefolder(direc)
+							end
+							local ok, err = pcall(writefile, direc .. WindowSettings.KeySettings.FileName .. ".luna", FoundKey)
+							if ok then
+								Luna:Notification({Title = "Key System", Content = "The key for this script has been saved successfully.", Icon = "lock_open"})
+							else
+								Luna:Notification({Title = "Key System", Content = "Key was valid, but failed to save: " .. tostring(err), Icon = "report_problem"})
+							end
 						end
-						Luna:Notification({Title = "Key System", Content = "The key for this script has been saved successfully.", Icon = "lock_open"})
 					end
 				else
 					if AttemptsRemaining == 0 then
